@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#F5F6F8</color>
+    <color name="bar_bg">#FFFFFF</color>
+    <color name="border">#E3E6EA</color>
+    <color name="accent">#2563EB</color>
+    <color name="accent_dark">#1D4ED8</color>
+    <color name="danger">#DC2626</color>
+    <color name="text">#1F2937</color>
+    <color name="muted">#6B7280</color>
+    <color name="chip_bg">#EEF2FF</color>
+    <color name="chip_border">#C7D2FE</color>
+    <color name="chip_text">#3730A3</color>
+    <color name="count_bg">#FEF2F2</color>
+    <color name="count_border">#FECACA</color>
+    <color name="track_off">#CBD2DC</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

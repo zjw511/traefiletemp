@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 地球轮廓 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28C40.2,28 29,39.2 29,53C29,66.8 40.2,78 54,78C67.8,78 79,66.8 79,53C79,39.2 67.8,28 54,28zM54,33C58.6,33 62.8,34.5 66.2,37L37,66.2C34.5,62.8 33,58.6 33,53C33,42 42,33 54,33zM54,78C41,78 33,64 33,53C33,47.4 34.5,42.2 37,38L66,67C63.5,71.4 58.6,78 54,78z" />
+</vector>
