@@ -188,8 +188,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     }
 
     private void updateCounts() {
-        redirectCountText.setText("跳转 " + redirectCount);
-        adCountText.setText("广告 " + adCount);
+        redirectCountText.setText(String.valueOf(redirectCount));
+        adCountText.setText(String.valueOf(adCount));
     }
 
     private void setStatus(CharSequence text) {
