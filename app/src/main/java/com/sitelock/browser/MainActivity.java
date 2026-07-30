@@ -298,8 +298,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         collapseAnimator.start();
     }
 
-    /** 让 webContainer 顶部留出工具栏高度，使 WebView 从工具栏下方开始，
-     *  这样 WebView 内部的 position:fixed 元素也不会被工具栏遮挡 */
+    /** 让 webContainer 顶部留出工具栏整体占位（topMargin + 高度），
+     *  使 WebView 从玻璃卡片下方开始，内部 fixed 元素也不被遮挡 */
     private void applyToolbarPadding() {
         if (webView == null || toolbarBlur == null) return;
         toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
@@ -307,9 +307,15 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
                         View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
         int h = toolbarBlur.getMeasuredHeight();
+        // 玻璃片悬浮在状态栏下方，WebView 要从玻璃片底部开始，须计入 topMargin
+        int topMargin = 0;
+        android.view.ViewGroup.LayoutParams lp = toolbarBlur.getLayoutParams();
+        if (lp instanceof android.widget.FrameLayout.LayoutParams) {
+            topMargin = ((android.widget.FrameLayout.LayoutParams) lp).topMargin;
+        }
         View container = findViewById(R.id.webContainer);
         if (container != null) {
-            container.setPadding(container.getPaddingLeft(), h,
+            container.setPadding(container.getPaddingLeft(), h + topMargin,
                     container.getPaddingRight(), container.getPaddingBottom());
         }
     }
