@@ -52,6 +52,7 @@ public class CustomWebViewClient extends WebViewClient {
     private volatile boolean blockRedirects = true;
     private volatile boolean blockAds = true;
     private volatile boolean desktopMode = true;
+    private volatile UserScriptManager userScriptManager;
 
     public CustomWebViewClient(Listener listener) {
         this.listener = listener;
@@ -61,6 +62,7 @@ public class CustomWebViewClient extends WebViewClient {
     public void setBlockRedirects(boolean v) { this.blockRedirects = v; }
     public void setBlockAds(boolean v) { this.blockAds = v; }
     public void setDesktopMode(boolean v) { this.desktopMode = v; }
+    public void setUserScriptManager(UserScriptManager m) { this.userScriptManager = m; }
     public String getHomeDomain() { return homeDomain; }
     public boolean isBlockRedirects() { return blockRedirects; }
     public boolean isBlockAds() { return blockAds; }
@@ -101,6 +103,8 @@ public class CustomWebViewClient extends WebViewClient {
 
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
+        // 注入 document-start 用户脚本（页面 JS 执行前尽早注入）
+        injectUserScripts(view, url, "document-start");
         if (listener != null) {
             listener.onPageStarted(url, favicon);
             listener.onUrlChanged(url);
@@ -133,7 +137,22 @@ public class CustomWebViewClient extends WebViewClient {
             // 注入覆盖层移除 / 跳转拦截巡检脚本（MutationObserver 实时监听）
             view.evaluateJavascript(AdRules.OVERLAY_REMOVER_JS, null);
         }
+
+        // 注入 document-end 用户脚本（页面加载完成后）
+        injectUserScripts(view, url, "document-end");
+
         if (listener != null) listener.onPageFinished(url);
+    }
+
+    /** 注入匹配当前 URL 的用户脚本 */
+    private void injectUserScripts(WebView view, String url, String runAt) {
+        if (userScriptManager == null || url == null) return;
+        // 跳过 about:blank / data: 等非网络页面
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+        String js = userScriptManager.buildInjection(url, runAt);
+        if (js != null && !js.isEmpty()) {
+            view.evaluateJavascript(js, null);
+        }
     }
 
     @Override

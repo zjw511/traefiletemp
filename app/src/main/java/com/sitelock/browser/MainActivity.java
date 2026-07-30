@@ -36,9 +36,10 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private WebView webView;
     private CustomWebViewClient webViewClient;
     private HistoryDbHelper historyDb;
+    private UserScriptManager userScriptManager;
 
     private EditText urlInput;
-    private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnGo;
+    private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnScripts, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
     private SwitchCompat toggleRedirects, toggleAds, toggleDesktop;
     private View countsBox;
@@ -57,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         bindViews();
 
         historyDb = new HistoryDbHelper(this);
+        userScriptManager = new UserScriptManager(this);
 
         // WebView 初始化
         webView = new WebView(this);
@@ -96,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         });
 
         webViewClient = new CustomWebViewClient(this);
+        webViewClient.setUserScriptManager(userScriptManager);
         webView.setWebViewClient(webViewClient);
 
         setupListeners();
@@ -112,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         btnReload = findViewById(R.id.btnReload);
         btnHome = findViewById(R.id.btnHome);
         btnHistory = findViewById(R.id.btnHistory);
+        btnScripts = findViewById(R.id.btnScripts);
         btnGo = findViewById(R.id.btnGo);
         homeDomainText = findViewById(R.id.homeDomain);
         toggleRedirects = findViewById(R.id.toggleRedirects);
@@ -147,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             }
         });
         btnHistory.setOnClickListener(v -> showHistoryDialog());
+        btnScripts.setOnClickListener(v -> showScriptsDialog());
 
         toggleRedirects.setOnCheckedChangeListener((b, checked) -> {
             webViewClient.setBlockRedirects(checked);
@@ -265,6 +270,109 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             lockIcon.setText(url != null && url.startsWith("https://") ? "🔒" : "🔓");
             if (!userTyping) urlInput.setText(url);
         });
+    }
+
+    // ===== 油猴脚本 =====
+    /** 打开脚本管理对话框 */
+    private void showScriptsDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_userscripts, null);
+        ListView listView = dialogView.findViewById(R.id.scriptList);
+        View emptyView = dialogView.findViewById(R.id.scriptEmpty);
+        Button btnAdd = dialogView.findViewById(R.id.btnAddScript);
+
+        java.util.List<UserScript> items = userScriptManager.getAll();
+        UserScriptAdapter adapter = new UserScriptAdapter(this, items,
+                userScriptManager.getDb(), () -> userScriptManager.reload());
+        listView.setAdapter(adapter);
+
+        refreshScriptEmpty(listView, emptyView, adapter);
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(dialogView).create();
+
+        // 新建脚本：打开编辑器（id 为 0 表示新增）
+        btnAdd.setOnClickListener(v -> showScriptEditor(0, null, adapter, listView, emptyView, dialog));
+
+        // 点击编辑
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            UserScript s = adapter.getItem(position);
+            if (s != null) showScriptEditor(s.id, s.code, adapter, listView, emptyView, dialog);
+        });
+
+        // 长按删除
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            UserScript s = adapter.getItem(position);
+            if (s != null) {
+                new AlertDialog.Builder(this)
+                        .setTitle("删除脚本")
+                        .setMessage(s.name)
+                        .setPositiveButton("删除", (d, w) -> {
+                            userScriptManager.getDb().delete(s.id);
+                            userScriptManager.reload();
+                            adapter.remove(s);
+                            adapter.notifyDataSetChanged();
+                            refreshScriptEmpty(listView, emptyView, adapter);
+                            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            }
+            return true;
+        });
+
+        dialog.show();
+    }
+
+    /** 脚本编辑器：新建或编辑现有脚本（id<=0 表示新建） */
+    private void showScriptEditor(long id, String existingCode,
+                                  UserScriptAdapter adapter, ListView listView,
+                                  View emptyView, AlertDialog parentDialog) {
+        View editorView = LayoutInflater.from(this).inflate(R.layout.dialog_script_editor, null);
+        EditText codeInput = editorView.findViewById(R.id.scriptCode);
+        if (existingCode != null) codeInput.setText(existingCode);
+        else codeInput.setText("// ==UserScript==\n" +
+                "// @name        新脚本\n" +
+                "// @match       *://*/*\n" +
+                "// @run-at      document-end\n" +
+                "// ==/UserScript==\n\n" +
+                "console.log('SiteLock UserScript loaded');");
+
+        AlertDialog editor = new AlertDialog.Builder(this)
+                .setTitle(id <= 0 ? "新建脚本" : "编辑脚本")
+                .setView(editorView)
+                .setPositiveButton("保存", (d, w) -> {
+                    String code = codeInput.getText().toString();
+                    if (TextUtils.isEmpty(code.trim())) {
+                        Toast.makeText(this, "代码为空", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (id <= 0) {
+                        userScriptManager.getDb().insert(code);
+                    } else {
+                        userScriptManager.getDb().update(id, code);
+                    }
+                    userScriptManager.reload();
+                    // 刷新列表
+                    adapter.clear();
+                    adapter.addAll(userScriptManager.getAll());
+                    adapter.notifyDataSetChanged();
+                    refreshScriptEmpty(listView, emptyView, adapter);
+                    Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show();
+                    // 重新加载当前页使脚本生效
+                    if (webView != null) webView.reload();
+                })
+                .setNegativeButton("取消", null)
+                .create();
+        editor.show();
+    }
+
+    private void refreshScriptEmpty(ListView listView, View emptyView, UserScriptAdapter adapter) {
+        if (adapter.isEmpty()) {
+            emptyView.setVisibility(View.VISIBLE);
+            listView.setVisibility(View.GONE);
+        } else {
+            emptyView.setVisibility(View.GONE);
+            listView.setVisibility(View.VISIBLE);
+        }
     }
 
     // ===== 历史记录 =====

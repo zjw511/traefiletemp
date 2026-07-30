@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@color/white">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="粘贴 .user.js 脚本代码"
+        android:textSize="14sp"
+        android:textColor="@color/text"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="需包含 // ==UserScript== 头部，支持 @name @match @run-at"
+        android:textSize="11sp"
+        android:textColor="@color/muted"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/scriptCode"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="top|start"
+        android:background="@drawable/script_editor_bg"
+        android:padding="8dp"
+        android:textSize="12sp"
+        android:typeface="monospace"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:scrollbars="vertical"
+        android:hint="// ==UserScript==&#10;// @name 我的脚本&#10;// @match *://*.example.com/*&#10;// @run-at document-end&#10;// ==/UserScript==&#10;&#10;console.log('hello');"
+        android:textColorHint="@color/muted"
+        android:textColor="@color/text" />
+
+</LinearLayout>
