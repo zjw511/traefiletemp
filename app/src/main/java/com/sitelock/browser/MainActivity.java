@@ -71,19 +71,21 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         bindViews();
 
-        // 工具栏顶部留出状态栏高度（设到 toolbarContent），避免被状态栏遮挡；并据此设置 WebView 顶部留白
+        // 工具栏顶部留出状态栏高度（用 margin 让玻璃片悬浮在状态栏下方，露出顶部玻璃边）
         ViewCompat.setOnApplyWindowInsetsListener(toolbarBlur, (v, insets) -> {
             int sb = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            toolbar.setPadding(toolbar.getPaddingLeft(), sb + dp(8),
-                    toolbar.getPaddingRight(), toolbar.getPaddingBottom());
+            android.widget.FrameLayout.LayoutParams lp =
+                    (android.widget.FrameLayout.LayoutParams) v.getLayoutParams();
+            lp.topMargin = sb + dp(6);
+            v.setLayoutParams(lp);
             v.post(this::applyToolbarPadding);
             return WindowInsetsCompat.CONSUMED;
         });
 
-        // 配置液态玻璃：圆角 + 折射 + 模糊，接近 iOS 26 工具栏质感
+        // 配置液态玻璃：较大圆角让玻璃边缘更明显，折射+模糊接近 iOS 26 质感
         // 库内部仅 Android 13+ 渲染效果，低版本透明降级不崩溃
         toolbarBlur.post(() -> {
-            toolbarBlur.setCornerRadius(dp(18));
+            toolbarBlur.setCornerRadius(dp(22));
             toolbarBlur.setRefractionHeight(dp(14));
             toolbarBlur.setRefractionOffset(dp(60));
             toolbarBlur.setBlurRadius(8f);
