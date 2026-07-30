@@ -20,6 +20,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.util.List;
 
@@ -39,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private UserScriptManager userScriptManager;
 
     private EditText urlInput;
+    private View toolbar;
     private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnScripts, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
     private SwitchCompat toggleRedirects, toggleAds, toggleDesktop;
@@ -53,9 +57,26 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 沉浸式：内容延伸到状态栏与导航栏后方（edge-to-edge）
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
         setContentView(R.layout.activity_main);
 
         bindViews();
+
+        // 工具栏顶部留出状态栏高度，避免被状态栏遮挡
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, insets) -> {
+            int sb = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            v.setPadding(v.getPaddingLeft(),
+                    sb + dp(8),
+                    v.getPaddingRight(),
+                    v.getPaddingBottom());
+            return WindowInsetsCompat.CONSUMED;
+        });
+
+        // iOS 风玻璃材质：半透明白底 + 亮边 + 阴影（见 toolbar_glass_bg.xml），
+        // 下方网页透过半透明背景朦胧可见，文字保持清晰
 
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);
@@ -110,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private void bindViews() {
         urlInput = findViewById(R.id.urlInput);
+        toolbar = findViewById(R.id.toolbar);
         btnBack = findViewById(R.id.btnBack);
         btnForward = findViewById(R.id.btnForward);
         btnReload = findViewById(R.id.btnReload);
@@ -209,6 +231,10 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         return s.length() > n ? s.substring(0, n) + "…" : s;
     }
 
+    private int dp(int v) {
+        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
     /** 桌面版 Chrome User-Agent（Windows） */
     private static final String DESKTOP_UA =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
@@ -268,7 +294,13 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     public void onUrlChanged(String url) {
         runOnUiThread(() -> {
             lockIcon.setText(url != null && url.startsWith("https://") ? "🔒" : "🔓");
-            if (!userTyping) urlInput.setText(url);
+            if (userTyping) return;
+            // 仅网络页面回填地址栏；起始页等非 http(s) 页面保持地址栏为空
+            if (url != null && (url.startsWith("http://") || url.startsWith("https://"))) {
+                urlInput.setText(url);
+            } else {
+                urlInput.setText("");
+            }
         });
     }
 

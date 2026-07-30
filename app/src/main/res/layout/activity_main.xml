@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 叠加布局：WebView 全屏沉浸，工具栏浮在顶部，iOS 风玻璃材质 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/bg">
+    android:background="@color/bg"
+    android:fitsSystemWindows="false">
 
-    <!-- 顶部工具栏 -->
+    <!-- 网页内容区：全屏，延伸到状态栏与导航栏后方 -->
+    <FrameLayout
+        android:id="@+id/webContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 顶部工具栏：悬浮 + 玻璃材质（顶部 padding 由代码按状态栏高度动态设置） -->
     <LinearLayout
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="top"
         android:orientation="vertical"
-        android:background="@color/bar_bg"
-        android:padding="8dp">
+        android:background="@drawable/toolbar_glass_bg"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:elevation="6dp">
 
         <!-- 第一行：导航按钮 + 地址栏 -->
         <LinearLayout
@@ -70,7 +83,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:text="🔒"
+                    android:text="🔓"
                     android:textSize="11sp"
                     android:alpha="0.7"
                     android:layout_gravity="start|center_vertical" />
@@ -220,15 +233,4 @@
         </LinearLayout>
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/border" />
-
-    <!-- 网页内容区 -->
-    <FrameLayout
-        android:id="@+id/webContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-</LinearLayout>
+</FrameLayout>

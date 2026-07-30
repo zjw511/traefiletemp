@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <!-- 半透明白底 + 轻微亮边，模拟 iOS 毛玻璃底色（高版本叠加 RenderEffect 实时模糊） -->
+    <solid android:color="@color/glass_bg" />
+    <stroke android:width="0.5dp" android:color="@color/glass_border" />
+</shape>

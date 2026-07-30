@@ -5,7 +5,13 @@
         <item name="colorPrimaryDark">@color/accent_dark</item>
         <item name="colorAccent">@color/accent</item>
         <item name="android:windowBackground">@color/bg</item>
-        <item name="android:statusBarColor">@color/bar_bg</item>
+        <!-- 沉浸式：状态栏与导航栏透明，内容延伸到系统栏后方 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
     </style>
 </resources>
