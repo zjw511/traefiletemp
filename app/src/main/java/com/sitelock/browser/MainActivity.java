@@ -158,7 +158,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         });
         toggleDesktop.setOnCheckedChangeListener((b, checked) -> {
             applyDesktopMode(checked);
-            // 刷新当前页面使 UA 生效
+            webViewClient.setDesktopMode(checked);
+            // 刷新当前页面使 UA 和 viewport 生效
             if (webView != null) webView.reload();
         });
 
@@ -214,9 +215,9 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         WebSettings settings = webView.getSettings();
         if (desktop) {
             settings.setUserAgentString(DESKTOP_UA);
-            // 桌面模式：宽视口，让页面按电脑版渲染
-            settings.setUseWideViewPort(true);
-            settings.setLoadWithOverviewMode(false);
+            // 桌面 UA + 手机 viewport：让网站返回电脑版页面但缩放到手机屏幕宽度
+            settings.setUseWideViewPort(false);
+            settings.setLoadWithOverviewMode(true);
         } else {
             // 恢复默认移动 UA（null 让 WebView 用系统默认）
             settings.setUserAgentString(null);

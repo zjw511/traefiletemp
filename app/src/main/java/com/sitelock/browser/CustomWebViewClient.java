@@ -23,6 +23,17 @@ import java.io.ByteArrayInputStream;
  */
 public class CustomWebViewClient extends WebViewClient {
 
+    /** 强制 viewport 适配手机屏幕宽度的 JS */
+    private static final String VIEWPORT_FIT_JS =
+        "(function(){try{"
+        + "var m=document.querySelector('meta[name=viewport]');"
+        + "if(m)m.remove();"
+        + "m=document.createElement('meta');"
+        + "m.name='viewport';"
+        + "m.content='width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes';"
+        + "document.head.appendChild(m);"
+        + "}catch(e){}})();";
+
     public interface Listener {
         /** 主框架即将跳转到非本网站 URL，已拦截 */
         void onRedirectBlocked(String url);
@@ -40,6 +51,7 @@ public class CustomWebViewClient extends WebViewClient {
     private volatile String homeDomain = "";
     private volatile boolean blockRedirects = true;
     private volatile boolean blockAds = true;
+    private volatile boolean desktopMode = true;
 
     public CustomWebViewClient(Listener listener) {
         this.listener = listener;
@@ -48,6 +60,7 @@ public class CustomWebViewClient extends WebViewClient {
     public void setHomeDomain(String domain) { this.homeDomain = domain; }
     public void setBlockRedirects(boolean v) { this.blockRedirects = v; }
     public void setBlockAds(boolean v) { this.blockAds = v; }
+    public void setDesktopMode(boolean v) { this.desktopMode = v; }
     public String getHomeDomain() { return homeDomain; }
     public boolean isBlockRedirects() { return blockRedirects; }
     public boolean isBlockAds() { return blockAds; }
@@ -96,6 +109,11 @@ public class CustomWebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView view, String url) {
+        // 桌面模式：注入 viewport 适配手机屏幕宽度
+        if (desktopMode) {
+            view.evaluateJavascript(VIEWPORT_FIT_JS, null);
+        }
+
         // 注入页边广告隐藏 CSS + 覆盖层广告/跳转遮罩隐藏 CSS
         if (blockAds) {
             // 先把本网站域名写入页面，供点击劫持拦截使用
