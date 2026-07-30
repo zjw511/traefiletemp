@@ -97,6 +97,10 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             }
         });
 
+        // 监听工具栏布局变化（首次布局/收拢动画每帧），自动同步 WebView 顶部留白，
+        // 确保地址栏等所有行都不被遮挡
+        toolbarBlur.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or2, ob) -> applyToolbarPadding());
+
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);
 
@@ -298,24 +302,32 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         collapseAnimator.start();
     }
 
-    /** 让 webContainer 顶部留出工具栏整体占位（topMargin + 高度），
-     *  使 WebView 从玻璃卡片下方开始，内部 fixed 元素也不被遮挡 */
+    /** 让 webContainer 顶部留出工具栏实际占位，使 WebView 从玻璃卡片下方开始，
+     *  内部 fixed 元素也不被遮挡。
+     *  用 toolbarBlur 渲染后的 getBottom()（含 topMargin + 实际高度）最准确，
+     *  覆盖状态栏、边距、收拢动画等各种情况 */
     private void applyToolbarPadding() {
         if (webView == null || toolbarBlur == null) return;
-        toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
-                        android.content.res.Resources.getSystem().getDisplayMetrics().widthPixels,
-                        View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        int h = toolbarBlur.getMeasuredHeight();
-        // 玻璃片悬浮在状态栏下方，WebView 要从玻璃片底部开始，须计入 topMargin
-        int topMargin = 0;
-        android.view.ViewGroup.LayoutParams lp = toolbarBlur.getLayoutParams();
-        if (lp instanceof android.widget.FrameLayout.LayoutParams) {
-            topMargin = ((android.widget.FrameLayout.LayoutParams) lp).topMargin;
+        // 尚未布局时 getBottom()=0，回退到测量值
+        int pad;
+        if (toolbarBlur.getBottom() > 0) {
+            pad = toolbarBlur.getBottom();
+        } else {
+            toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
+                            android.content.res.Resources.getSystem().getDisplayMetrics().widthPixels,
+                            View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int h = toolbarBlur.getMeasuredHeight();
+            int topMargin = 0;
+            android.view.ViewGroup.LayoutParams lp = toolbarBlur.getLayoutParams();
+            if (lp instanceof android.widget.FrameLayout.LayoutParams) {
+                topMargin = ((android.widget.FrameLayout.LayoutParams) lp).topMargin;
+            }
+            pad = h + topMargin;
         }
         View container = findViewById(R.id.webContainer);
         if (container != null) {
-            container.setPadding(container.getPaddingLeft(), h + topMargin,
+            container.setPadding(container.getPaddingLeft(), pad,
                     container.getPaddingRight(), container.getPaddingBottom());
         }
     }
