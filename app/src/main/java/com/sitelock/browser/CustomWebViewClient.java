@@ -98,6 +98,10 @@ public class CustomWebViewClient extends WebViewClient {
     public void onPageFinished(WebView view, String url) {
         // 注入页边广告隐藏 CSS + 覆盖层广告/跳转遮罩隐藏 CSS
         if (blockAds) {
+            // 先把本网站域名写入页面，供点击劫持拦截使用
+            String safeHome = homeDomain == null ? "" : homeDomain.replace("'", "\\'");
+            view.evaluateJavascript("window.__sitelockHome='" + safeHome + "';", null);
+
             String css = AdRules.AD_CSS + AdRules.OVERLAY_CSS;
             String js = "(function(){try{var s=document.createElement('style');"
                 + "s.type='text/css';s.id='sitelock-adhide';"
@@ -108,7 +112,7 @@ public class CustomWebViewClient extends WebViewClient {
                 + "}catch(e){}})();";
             view.evaluateJavascript(js, null);
 
-            // 注入覆盖层移除 / 跳转拦截巡检脚本
+            // 注入覆盖层移除 / 跳转拦截巡检脚本（MutationObserver 实时监听）
             view.evaluateJavascript(AdRules.OVERLAY_REMOVER_JS, null);
         }
         if (listener != null) listener.onPageFinished(url);
