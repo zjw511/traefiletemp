@@ -1,11 +1,12 @@
 package com.sitelock.browser;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.text.Editable;
 import android.text.TextUtils;
-import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
@@ -13,11 +14,14 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+
+import java.util.List;
 
 /**
  * 主界面：顶部工具栏（地址栏 / 导航 / 本网站 / 开关 / 计数 / 状态）+ WebView。
@@ -31,9 +35,10 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private WebView webView;
     private CustomWebViewClient webViewClient;
+    private HistoryDbHelper historyDb;
 
     private EditText urlInput;
-    private Button btnBack, btnForward, btnReload, btnHome, btnGo;
+    private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
     private SwitchCompat toggleRedirects, toggleAds;
     private View countsBox;
@@ -41,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private int redirectCount = 0;
     private int adCount = 0;
     private boolean userTyping = false;
+    private String currentTitle = "";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -49,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         setContentView(R.layout.activity_main);
 
         bindViews();
+
+        historyDb = new HistoryDbHelper(this);
 
         // WebView 初始化
         webView = new WebView(this);
@@ -76,6 +84,12 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
                 // 拒绝新窗口请求，避免通过弹窗绕过跳转屏蔽
                 return false;
             }
+
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                // 更新当前页面标题，供历史记录使用
+                if (title != null) currentTitle = title;
+            }
         });
 
         webViewClient = new CustomWebViewClient(this);
@@ -94,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         btnForward = findViewById(R.id.btnForward);
         btnReload = findViewById(R.id.btnReload);
         btnHome = findViewById(R.id.btnHome);
+        btnHistory = findViewById(R.id.btnHistory);
         btnGo = findViewById(R.id.btnGo);
         homeDomainText = findViewById(R.id.homeDomain);
         toggleRedirects = findViewById(R.id.toggleRedirects);
@@ -127,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
                 Toast.makeText(this, R.string.home_none, Toast.LENGTH_SHORT).show();
             }
         });
+        btnHistory.setOnClickListener(v -> showHistoryDialog());
 
         toggleRedirects.setOnCheckedChangeListener((b, checked) -> {
             webViewClient.setBlockRedirects(checked);
@@ -204,7 +220,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     @Override
     public void onPageFinished(String url) {
-        // 加载完成状态由 URL 同步时刷新
+        // 记录浏览历史（仅网络页面）
+        if (!TextUtils.isEmpty(url) && UrlUtils.isValidUrl(url)) {
+            String title = TextUtils.isEmpty(currentTitle) ? url : currentTitle;
+            historyDb.record(url, title);
+        }
     }
 
     @Override
@@ -213,6 +233,94 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             lockIcon.setText(url != null && url.startsWith("https://") ? "🔒" : "🔓");
             if (!userTyping) urlInput.setText(url);
         });
+    }
+
+    // ===== 历史记录 =====
+    /** 打开历史记录对话框 */
+    private void showHistoryDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_history, null);
+        ListView listView = dialogView.findViewById(R.id.historyList);
+        View emptyView = dialogView.findViewById(R.id.historyEmpty);
+        Button btnClear = dialogView.findViewById(R.id.btnClearHistory);
+
+        List<HistoryDbHelper.HistoryItem> items = historyDb.getAll();
+        HistoryAdapter adapter = new HistoryAdapter(this, items);
+        listView.setAdapter(adapter);
+
+        if (items.isEmpty()) {
+            emptyView.setVisibility(View.VISIBLE);
+            listView.setVisibility(View.GONE);
+        } else {
+            emptyView.setVisibility(View.GONE);
+            listView.setVisibility(View.VISIBLE);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        // 点击加载
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            HistoryDbHelper.HistoryItem item = adapter.getItem(position);
+            if (item != null) {
+                loadFromHistory(item.url);
+                dialog.dismiss();
+            }
+        });
+
+        // 长按删除单条
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            HistoryDbHelper.HistoryItem item = adapter.getItem(position);
+            if (item != null) {
+                new AlertDialog.Builder(this)
+                        .setTitle("删除该记录")
+                        .setMessage(item.url)
+                        .setPositiveButton("删除", (d, w) -> {
+                            historyDb.delete(item.url);
+                            adapter.remove(item);
+                            adapter.notifyDataSetChanged();
+                            if (adapter.isEmpty()) {
+                                emptyView.setVisibility(View.VISIBLE);
+                                listView.setVisibility(View.GONE);
+                            }
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            }
+            return true;
+        });
+
+        // 清空全部
+        btnClear.setOnClickListener(v -> {
+            if (adapter.isEmpty()) return;
+            new AlertDialog.Builder(this)
+                    .setTitle("清空历史")
+                    .setMessage("确定清空全部历史记录？")
+                    .setPositiveButton("清空", (d, w) -> {
+                        historyDb.clear();
+                        adapter.clear();
+                        adapter.notifyDataSetChanged();
+                        emptyView.setVisibility(View.VISIBLE);
+                        listView.setVisibility(View.GONE);
+                        Toast.makeText(this, "历史已清空", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+        });
+
+        dialog.show();
+    }
+
+    /** 从历史记录加载 URL：沿用原域名作为本网站 */
+    private void loadFromHistory(String url) {
+        if (TextUtils.isEmpty(url)) return;
+        String domain = UrlUtils.getDomain(url);
+        if (!TextUtils.isEmpty(domain)) {
+            webViewClient.setHomeDomain(domain);
+            homeDomainText.setText(domain);
+        }
+        urlInput.setText(url);
+        webView.loadUrl(url);
     }
 
     // ===== 返回键：先退网页历史 =====

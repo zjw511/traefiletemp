@@ -96,16 +96,20 @@ public class CustomWebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView view, String url) {
-        // 注入页边广告隐藏 CSS
+        // 注入页边广告隐藏 CSS + 覆盖层广告/跳转遮罩隐藏 CSS
         if (blockAds) {
+            String css = AdRules.AD_CSS + AdRules.OVERLAY_CSS;
             String js = "(function(){try{var s=document.createElement('style');"
                 + "s.type='text/css';s.id='sitelock-adhide';"
                 + "if(document.getElementById('sitelock-adhide'))return;"
                 + "s.appendChild(document.createTextNode("
-                + jsStringLiteral(AdRules.AD_CSS)
+                + jsStringLiteral(css)
                 + "));(document.head||document.documentElement).appendChild(s);"
                 + "}catch(e){}})();";
             view.evaluateJavascript(js, null);
+
+            // 注入覆盖层移除 / 跳转拦截巡检脚本
+            view.evaluateJavascript(AdRules.OVERLAY_REMOVER_JS, null);
         }
         if (listener != null) listener.onPageFinished(url);
     }

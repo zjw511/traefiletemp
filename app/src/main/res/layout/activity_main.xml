@@ -44,6 +44,11 @@
                     android:id="@+id/btnHome"
                     style="@style/NavButton"
                     android:text="⌂" />
+
+                <Button
+                    android:id="@+id/btnHistory"
+                    style="@style/NavButton"
+                    android:text="≡" />
             </LinearLayout>
 
             <FrameLayout
