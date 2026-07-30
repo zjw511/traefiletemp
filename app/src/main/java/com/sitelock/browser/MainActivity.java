@@ -296,7 +296,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         collapseAnimator.start();
     }
 
-    /** 让 WebView 顶部留白等于当前工具栏高度，使页面默认在工具栏下方 */
+    /** 让 webContainer 顶部留出工具栏高度，使 WebView 从工具栏下方开始，
+     *  这样 WebView 内部的 position:fixed 元素也不会被工具栏遮挡 */
     private void applyToolbarPadding() {
         if (webView == null || toolbarBlur == null) return;
         toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
@@ -304,7 +305,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
                         View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
         int h = toolbarBlur.getMeasuredHeight();
-        webView.setPadding(webView.getPaddingLeft(), h, webView.getPaddingRight(), webView.getPaddingBottom());
+        View container = findViewById(R.id.webContainer);
+        if (container != null) {
+            container.setPadding(container.getPaddingLeft(), h,
+                    container.getPaddingRight(), container.getPaddingBottom());
+        }
     }
 
     /** 桌面版 Chrome User-Agent（Windows） */

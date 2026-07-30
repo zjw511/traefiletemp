@@ -12,7 +12,7 @@
         android:id="@+id/webContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false" />
+        android:clipToPadding="true" />
 
     <!-- 顶部液态玻璃工具栏：LiquidGlassView 渲染折射/模糊背景，工具栏内容作为子 View 叠在玻璃之上 -->
     <com.qmdeve.liquidglass.widget.LiquidGlassView
