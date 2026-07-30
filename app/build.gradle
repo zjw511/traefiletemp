@@ -32,4 +32,7 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
+    // iOS 26 风液态玻璃（折射+色散），Android 13+ 生效，低版本透明降级
+    // 1.0.3 保持 minCompileSdk=1，兼容 compileSdk 34；1.0.4+ 要求 SDK 37
+    implementation 'com.qmdeve.liquidglass:core:1.0.3'
 }

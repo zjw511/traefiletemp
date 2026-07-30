@@ -42,7 +42,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private UserScriptManager userScriptManager;
 
     private EditText urlInput;
-    private View toolbar;
+    private View toolbar, toolbarRowB;
+    private com.qmdeve.liquidglass.widget.LiquidGlassView toolbarBlur;
     private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnScripts, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
     private SwitchCompat toggleRedirects, toggleAds, toggleDesktop;
@@ -52,6 +53,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private int adCount = 0;
     private boolean userTyping = false;
     private String currentTitle = "";
+
+    // 工具栏收拢状态：true=已收拢（仅保留地址栏行）
+    private boolean toolbarCollapsed = false;
+    private int rowBHeight = 0; // 第二行实际高度（含上边距）
+    private android.animation.ValueAnimator collapseAnimator;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -65,28 +71,49 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         bindViews();
 
-        // 工具栏顶部留出状态栏高度，避免被状态栏遮挡
-        ViewCompat.setOnApplyWindowInsetsListener(toolbar, (v, insets) -> {
+        // 工具栏顶部留出状态栏高度（设到 toolbarContent），避免被状态栏遮挡；并据此设置 WebView 顶部留白
+        ViewCompat.setOnApplyWindowInsetsListener(toolbarBlur, (v, insets) -> {
             int sb = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            v.setPadding(v.getPaddingLeft(),
-                    sb + dp(8),
-                    v.getPaddingRight(),
-                    v.getPaddingBottom());
+            toolbar.setPadding(toolbar.getPaddingLeft(), sb + dp(8),
+                    toolbar.getPaddingRight(), toolbar.getPaddingBottom());
+            v.post(this::applyToolbarPadding);
             return WindowInsetsCompat.CONSUMED;
         });
 
-        // iOS 风玻璃材质：半透明白底 + 亮边 + 阴影（见 toolbar_glass_bg.xml），
-        // 下方网页透过半透明背景朦胧可见，文字保持清晰
+        // 配置液态玻璃：圆角 + 折射 + 模糊，接近 iOS 26 工具栏质感
+        // 库内部仅 Android 13+ 渲染效果，低版本透明降级不崩溃
+        toolbarBlur.post(() -> {
+            toolbarBlur.setCornerRadius(dp(18));
+            toolbarBlur.setRefractionHeight(dp(14));
+            toolbarBlur.setRefractionOffset(dp(60));
+            toolbarBlur.setBlurRadius(8f);
+            toolbarBlur.setDispersion(0.4f);
+            // 绑定 WebView 容器作为采样背景源
+            View src = findViewById(R.id.webContainer);
+            if (src instanceof android.view.ViewGroup) {
+                toolbarBlur.bind((android.view.ViewGroup) src);
+            }
+        });
 
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);
 
-        // WebView 初始化
-        webView = new WebView(this);
+        // WebView 初始化（使用可监听滚动的子类，用于上滑收拢工具栏）
+        webView = new ObservableWebView(this);
         ((android.widget.FrameLayout) findViewById(R.id.webContainer)).addView(webView,
                 new android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+
+        // 滚动监听：上滑收拢、下滑展开（在页面顶部强制展开）
+        ((ObservableWebView) webView).setOnScrollChangeListener((view, scrollY, dy) -> {
+            if (scrollY <= dp(2)) {
+                setToolbarCollapsed(false);
+                return;
+            }
+            if (dy > dp(6)) setToolbarCollapsed(true);
+            else if (dy < -dp(6)) setToolbarCollapsed(false);
+        });
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -131,7 +158,9 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private void bindViews() {
         urlInput = findViewById(R.id.urlInput);
-        toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbarContent);
+        toolbarBlur = findViewById(R.id.toolbarBlur);
+        toolbarRowB = findViewById(R.id.toolbarRowB);
         btnBack = findViewById(R.id.btnBack);
         btnForward = findViewById(R.id.btnForward);
         btnReload = findViewById(R.id.btnReload);
@@ -233,6 +262,49 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private int dp(int v) {
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    /** 收拢/展开工具栏：通过动画改变 rowB 高度，并同步 WebView 顶部留白 */
+    private void setToolbarCollapsed(boolean collapsed) {
+        if (toolbarCollapsed == collapsed) return;
+        toolbarCollapsed = collapsed;
+        if (collapseAnimator != null && collapseAnimator.isRunning()) collapseAnimator.cancel();
+
+        // 首次记录 rowB 内容高度（不含外边距）
+        if (rowBHeight == 0) {
+            int w = toolbarRowB.getWidth() > 0 ? toolbarRowB.getWidth()
+                    : android.content.res.Resources.getSystem().getDisplayMetrics().widthPixels;
+            toolbarRowB.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            rowBHeight = toolbarRowB.getMeasuredHeight();
+            if (rowBHeight <= 0) rowBHeight = dp(32);
+        }
+
+        int start = collapsed ? rowBHeight : 0;
+        int end = collapsed ? 0 : rowBHeight;
+        collapseAnimator = android.animation.ValueAnimator.ofInt(start, end).setDuration(220);
+        collapseAnimator.addUpdateListener(anim -> {
+            int h = (int) anim.getAnimatedValue();
+            android.widget.LinearLayout.LayoutParams lp =
+                    (android.widget.LinearLayout.LayoutParams) toolbarRowB.getLayoutParams();
+            lp.height = h;
+            lp.topMargin = h == 0 ? 0 : dp(8);
+            toolbarRowB.setLayoutParams(lp);
+            toolbarRowB.setAlpha(rowBHeight == 0 ? 0f : Math.min(1f, h / (float) rowBHeight));
+            applyToolbarPadding();
+        });
+        collapseAnimator.start();
+    }
+
+    /** 让 WebView 顶部留白等于当前工具栏高度，使页面默认在工具栏下方 */
+    private void applyToolbarPadding() {
+        if (webView == null || toolbarBlur == null) return;
+        toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
+                        android.content.res.Resources.getSystem().getDisplayMetrics().widthPixels,
+                        View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int h = toolbarBlur.getMeasuredHeight();
+        webView.setPadding(webView.getPaddingLeft(), h, webView.getPaddingRight(), webView.getPaddingBottom());
     }
 
     /** 桌面版 Chrome User-Agent（Windows） */

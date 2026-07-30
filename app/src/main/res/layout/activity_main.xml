@@ -1,236 +1,246 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 叠加布局：WebView 全屏沉浸，工具栏浮在顶部，iOS 风玻璃材质 -->
+<!-- 叠加布局：WebView 全屏沉浸在底，RealtimeBlurView 玻璃工具栏悬浮顶部 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg"
     android:fitsSystemWindows="false">
 
-    <!-- 网页内容区：全屏，延伸到状态栏与导航栏后方 -->
+    <!-- 网页内容区：全屏，顶部 padding 由代码按工具栏高度动态设置，使页面默认在栏下方 -->
     <FrameLayout
         android:id="@+id/webContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:clipToPadding="false" />
 
-    <!-- 顶部工具栏：悬浮 + 玻璃材质（顶部 padding 由代码按状态栏高度动态设置） -->
-    <LinearLayout
-        android:id="@+id/toolbar"
+    <!-- 顶部液态玻璃工具栏：LiquidGlassView 渲染折射/模糊背景，工具栏内容作为子 View 叠在玻璃之上 -->
+    <com.qmdeve.liquidglass.widget.LiquidGlassView
+        android:id="@+id/toolbarBlur"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:orientation="vertical"
-        android:background="@drawable/toolbar_glass_bg"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:layout_marginStart="0dp"
+        android:layout_marginEnd="0dp"
         android:elevation="6dp">
 
-        <!-- 第一行：导航按钮 + 地址栏 -->
         <LinearLayout
+            android:id="@+id/toolbarContent"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
 
+            <!-- 第一行：导航按钮 + 地址栏（收拢时保留） -->
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:orientation="horizontal">
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-                <Button
-                    android:id="@+id/btnBack"
-                    style="@style/NavButton"
-                    android:text="←" />
-
-                <Button
-                    android:id="@+id/btnForward"
-                    style="@style/NavButton"
-                    android:text="→" />
-
-                <Button
-                    android:id="@+id/btnReload"
-                    style="@style/NavButton"
-                    android:text="↻" />
-
-                <Button
-                    android:id="@+id/btnHome"
-                    style="@style/NavButton"
-                    android:text="⌂" />
-
-                <Button
-                    android:id="@+id/btnHistory"
-                    style="@style/NavButton"
-                    android:text="≡" />
-
-                <Button
-                    android:id="@+id/btnScripts"
-                    style="@style/NavButton"
-                    android:text="{}" />
-            </LinearLayout>
-
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/addr_bg"
-                android:paddingStart="12dp"
-                android:paddingEnd="4dp">
-
-                <TextView
-                    android:id="@+id/lockIcon"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="🔓"
-                    android:textSize="11sp"
-                    android:alpha="0.7"
-                    android:layout_gravity="start|center_vertical" />
+                    android:orientation="horizontal">
 
-                <EditText
-                    android:id="@+id/urlInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="22dp"
-                    android:layout_marginEnd="46dp"
-                    android:background="@null"
-                    android:hint="@string/hint_url"
-                    android:textColorHint="@color/muted"
-                    android:textSize="13sp"
-                    android:textColor="@color/text"
-                    android:inputType="textUri"
-                    android:imeOptions="actionGo"
-                    android:singleLine="true"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp" />
+                    <Button
+                        android:id="@+id/btnBack"
+                        style="@style/NavButton"
+                        android:text="←" />
 
-                <Button
-                    android:id="@+id/btnGo"
-                    android:layout_width="40dp"
+                    <Button
+                        android:id="@+id/btnForward"
+                        style="@style/NavButton"
+                        android:text="→" />
+
+                    <Button
+                        android:id="@+id/btnReload"
+                        style="@style/NavButton"
+                        android:text="↻" />
+
+                    <Button
+                        android:id="@+id/btnHome"
+                        style="@style/NavButton"
+                        android:text="⌂" />
+
+                    <Button
+                        android:id="@+id/btnHistory"
+                        style="@style/NavButton"
+                        android:text="≡" />
+
+                    <Button
+                        android:id="@+id/btnScripts"
+                        style="@style/NavButton"
+                        android:text="{}" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/addr_bg"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:id="@+id/lockIcon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="🔓"
+                        android:textSize="11sp"
+                        android:alpha="0.7"
+                        android:layout_gravity="start|center_vertical" />
+
+                    <EditText
+                        android:id="@+id/urlInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="22dp"
+                        android:layout_marginEnd="46dp"
+                        android:background="@null"
+                        android:hint="@string/hint_url"
+                        android:textColorHint="@color/muted"
+                        android:textSize="13sp"
+                        android:textColor="@color/text"
+                        android:inputType="textUri"
+                        android:imeOptions="actionGo"
+                        android:singleLine="true"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnGo"
+                        android:layout_width="40dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:background="@drawable/go_btn_bg"
+                        android:text="@string/go"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:padding="0dp" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- 第二行：本网站 + 开关 + 计数 + 状态（上滑收拢时隐藏） -->
+            <LinearLayout
+                android:id="@+id/toolbarRowB"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
                     android:layout_height="26dp"
-                    android:layout_gravity="end|center_vertical"
-                    android:background="@drawable/go_btn_bg"
-                    android:text="@string/go"
-                    android:textColor="@color/white"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/chip_bg"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:id="@+id/homeDomain"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_none"
+                        android:textColor="@color/chip_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:maxWidth="100dp"
+                        android:singleLine="true"
+                        android:ellipsize="end" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/toggleRedirects"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
+                    android:checked="true"
+                    android:text="@string/toggle_redirects_short"
+                    android:textSize="11sp"
+                    android:textColor="@color/text" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/toggleAds"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
+                    android:checked="true"
+                    android:text="@string/toggle_ads_short"
+                    android:textSize="11sp"
+                    android:textColor="@color/text" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/toggleDesktop"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
+                    android:checked="true"
+                    android:text="@string/toggle_desktop_short"
+                    android:textSize="11sp"
+                    android:textColor="@color/text" />
+
+                <LinearLayout
+                    android:id="@+id/countsBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/count_bg"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:id="@+id/redirectCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/danger"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="/"
+                        android:textColor="@color/danger"
+                        android:textSize="11sp"
+                        android:alpha="0.5" />
+
+                    <TextView
+                        android:id="@+id/adCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/danger"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="end|center_vertical"
+                    android:text="@string/status_ready"
+                    android:textColor="@color/muted"
                     android:textSize="12sp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:padding="0dp" />
-            </FrameLayout>
-        </LinearLayout>
-
-        <!-- 第二行：本网站 + 开关 + 计数 + 状态 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/chip_bg"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp">
-
-                <TextView
-                    android:id="@+id/homeDomain"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_none"
-                    android:textColor="@color/chip_text"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:maxWidth="100dp"
                     android:singleLine="true"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:paddingStart="8dp" />
             </LinearLayout>
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/toggleRedirects"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:layout_marginStart="6dp"
-                android:checked="true"
-                android:text="@string/toggle_redirects_short"
-                android:textSize="11sp"
-                android:textColor="@color/text" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/toggleAds"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:layout_marginStart="6dp"
-                android:checked="true"
-                android:text="@string/toggle_ads_short"
-                android:textSize="11sp"
-                android:textColor="@color/text" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/toggleDesktop"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:layout_marginStart="6dp"
-                android:checked="true"
-                android:text="@string/toggle_desktop_short"
-                android:textSize="11sp"
-                android:textColor="@color/text" />
-
-            <LinearLayout
-                android:id="@+id/countsBox"
-                android:layout_width="wrap_content"
-                android:layout_height="26dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/count_bg"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:clickable="true"
-                android:focusable="true">
-
-                <TextView
-                    android:id="@+id/redirectCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/danger"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="/"
-                    android:textColor="@color/danger"
-                    android:textSize="11sp"
-                    android:alpha="0.5" />
-
-                <TextView
-                    android:id="@+id/adCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/danger"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/statusText"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="end|center_vertical"
-                android:text="@string/status_ready"
-                android:textColor="@color/muted"
-                android:textSize="12sp"
-                android:singleLine="true"
-                android:ellipsize="end"
-                android:paddingStart="8dp" />
         </LinearLayout>
-    </LinearLayout>
+    </com.qmdeve.liquidglass.widget.LiquidGlassView>
 
 </FrameLayout>
