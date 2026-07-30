@@ -7,6 +7,7 @@
     <string name="home_none">（未设定）</string>
     <string name="toggle_redirects">跳转屏蔽</string>
     <string name="toggle_ads">广告屏蔽</string>
+    <string name="toggle_desktop">桌面模式</string>
     <string name="status_ready">就绪</string>
     <string name="loading">加载中…</string>
     <string name="invalid_url">无效地址</string>

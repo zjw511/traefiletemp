@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private EditText urlInput;
     private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
-    private SwitchCompat toggleRedirects, toggleAds;
+    private SwitchCompat toggleRedirects, toggleAds, toggleDesktop;
     private View countsBox;
 
     private int redirectCount = 0;
@@ -76,6 +76,9 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
+
+        // 默认开启桌面模式：伪装成电脑浏览器，网站返回无广告的桌面版页面
+        applyDesktopMode(true);
 
         // 关键：新建窗口（target=_blank）交给当前 WebView 处理，不弹系统浏览器
         webView.setWebChromeClient(new WebChromeClient() {
@@ -113,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         homeDomainText = findViewById(R.id.homeDomain);
         toggleRedirects = findViewById(R.id.toggleRedirects);
         toggleAds = findViewById(R.id.toggleAds);
+        toggleDesktop = findViewById(R.id.toggleDesktop);
         redirectCountText = findViewById(R.id.redirectCount);
         adCountText = findViewById(R.id.adCount);
         countsBox = findViewById(R.id.countsBox);
@@ -151,6 +155,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         toggleAds.setOnCheckedChangeListener((b, checked) -> {
             webViewClient.setBlockAds(checked);
             setStatus(checked ? R.string.ads_on : R.string.ads_off);
+        });
+        toggleDesktop.setOnCheckedChangeListener((b, checked) -> {
+            applyDesktopMode(checked);
+            // 刷新当前页面使 UA 生效
+            if (webView != null) webView.reload();
         });
 
         countsBox.setOnClickListener(v -> {
@@ -192,6 +201,28 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
     private String truncate(String s, int n) {
         if (s == null) return "";
         return s.length() > n ? s.substring(0, n) + "…" : s;
+    }
+
+    /** 桌面版 Chrome User-Agent（Windows） */
+    private static final String DESKTOP_UA =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+
+    /** 切换桌面/移动模式 */
+    @SuppressLint("SetJavaScriptEnabled")
+    private void applyDesktopMode(boolean desktop) {
+        if (webView == null) return;
+        WebSettings settings = webView.getSettings();
+        if (desktop) {
+            settings.setUserAgentString(DESKTOP_UA);
+            // 桌面模式：宽视口，让页面按电脑版渲染
+            settings.setUseWideViewPort(true);
+            settings.setLoadWithOverviewMode(false);
+        } else {
+            // 恢复默认移动 UA（null 让 WebView 用系统默认）
+            settings.setUserAgentString(null);
+            settings.setUseWideViewPort(true);
+            settings.setLoadWithOverviewMode(true);
+        }
     }
 
     // ===== CustomWebViewClient.Listener =====
