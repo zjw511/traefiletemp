@@ -114,10 +114,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         // WebView 初始化（使用可监听滚动的子类，用于上滑收拢工具栏）
         webView = new ObservableWebView(this);
-        ((android.widget.FrameLayout) findViewById(R.id.webContainer)).addView(webView,
+        android.widget.FrameLayout.LayoutParams webLp =
                 new android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
+        ((android.widget.FrameLayout) findViewById(R.id.webContainer)).addView(webView, webLp);
 
         // 滚动监听：上滑收拢、下滑展开（在页面顶部强制展开）
         ((ObservableWebView) webView).setOnScrollChangeListener((view, scrollY, dy) -> {
@@ -312,11 +313,11 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private int lastToolbarPad = -1;
 
-    /** 让 webContainer 顶部留出工具栏实际占位，使 WebView 从玻璃卡片下方开始，
+    /** 让 WebView 顶部留出工具栏实际占位，使页面从玻璃卡片下方开始，
      *  内部 fixed 元素也不被遮挡。
-     *  用 toolbarBlur 渲染后的 getBottom()（含 topMargin + 实际高度）最准确，
-     *  覆盖状态栏、边距、收拢动画等各种情况。
-     *  防抖：padding 值未变化时跳过，避免 setPadding→重布局→listener→死循环 */
+     *  改用 WebView topMargin 而非 webContainer padding，
+     *  避免 LiquidGlassView.bind() 采样时与 padding 产生布局冲突。
+     *  防抖：topMargin 值未变化时跳过，避免重复 setLayoutParams 触发重布局 */
     private void applyToolbarPadding() {
         if (webView == null || toolbarBlur == null) return;
         int pad;
@@ -335,13 +336,17 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             }
             pad = h + topMargin;
         }
-        if (pad == lastToolbarPad) return;   // 防抖：值未变就跳过，打断循环
+        if (pad == lastToolbarPad) return;
         lastToolbarPad = pad;
-        View container = findViewById(R.id.webContainer);
-        if (container != null) {
-            container.setPadding(container.getPaddingLeft(), pad,
-                    container.getPaddingRight(), container.getPaddingBottom());
+        android.widget.FrameLayout.LayoutParams lp =
+                (android.widget.FrameLayout.LayoutParams) webView.getLayoutParams();
+        if (lp == null) {
+            lp = new android.widget.FrameLayout.LayoutParams(
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
         }
+        lp.topMargin = pad;
+        webView.setLayoutParams(lp);
     }
 
     /** 桌面版 Chrome User-Agent（Windows） */

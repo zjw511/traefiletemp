@@ -7,12 +7,12 @@
     android:background="@color/bg"
     android:fitsSystemWindows="false">
 
-    <!-- 网页内容区：全屏，顶部 padding 由代码按工具栏高度动态设置，使页面默认在栏下方 -->
+    <!-- 网页内容区：全屏，WebView 通过 topMargin 代码动态定位到工具栏下方 -->
     <FrameLayout
         android:id="@+id/webContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="true" />
+        android:background="@android:color/transparent" />
 
     <!-- 顶部液态玻璃工具栏：悬浮卡片形态，四周留边距，四角圆角，玻璃边缘可见 -->
     <com.qmdeve.liquidglass.widget.LiquidGlassView
@@ -39,7 +39,7 @@
             <!-- 第一行：导航按钮 + 地址栏（收拢时保留） -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -81,7 +81,7 @@
 
                 <FrameLayout
                     android:layout_width="0dp"
-                    android:layout_height="34dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
                     android:background="@drawable/addr_bg"
@@ -107,7 +107,7 @@
                         android:background="@null"
                         android:hint="@string/hint_url"
                         android:textColorHint="@color/muted"
-                        android:textSize="13sp"
+                        android:textSize="14sp"
                         android:textColor="@color/text"
                         android:inputType="textUri"
                         android:imeOptions="actionGo"
@@ -117,13 +117,13 @@
 
                     <Button
                         android:id="@+id/btnGo"
-                        android:layout_width="40dp"
-                        android:layout_height="26dp"
+                        android:layout_width="44dp"
+                        android:layout_height="34dp"
                         android:layout_gravity="end|center_vertical"
                         android:background="@drawable/go_btn_bg"
                         android:text="@string/go"
                         android:textColor="@color/white"
-                        android:textSize="12sp"
+                        android:textSize="13sp"
                         android:minWidth="0dp"
                         android:minHeight="0dp"
                         android:padding="0dp" />
