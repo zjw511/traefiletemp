@@ -97,9 +97,17 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             }
         });
 
-        // 监听工具栏布局变化（首次布局/收拢动画每帧），自动同步 WebView 顶部留白，
-        // 确保地址栏等所有行都不被遮挡
-        toolbarBlur.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or2, ob) -> applyToolbarPadding());
+        // 首次布局完成后获取真实高度并同步一次 padding（一次性，避免循环）
+        toolbarBlur.getViewTreeObserver().addOnGlobalLayoutListener(
+                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        if (toolbarBlur.getBottom() > 0) {
+                            applyToolbarPadding();
+                            toolbarBlur.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        }
+                    }
+                });
 
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);
@@ -302,13 +310,15 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         collapseAnimator.start();
     }
 
+    private int lastToolbarPad = -1;
+
     /** 让 webContainer 顶部留出工具栏实际占位，使 WebView 从玻璃卡片下方开始，
      *  内部 fixed 元素也不被遮挡。
      *  用 toolbarBlur 渲染后的 getBottom()（含 topMargin + 实际高度）最准确，
-     *  覆盖状态栏、边距、收拢动画等各种情况 */
+     *  覆盖状态栏、边距、收拢动画等各种情况。
+     *  防抖：padding 值未变化时跳过，避免 setPadding→重布局→listener→死循环 */
     private void applyToolbarPadding() {
         if (webView == null || toolbarBlur == null) return;
-        // 尚未布局时 getBottom()=0，回退到测量值
         int pad;
         if (toolbarBlur.getBottom() > 0) {
             pad = toolbarBlur.getBottom();
@@ -325,6 +335,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             }
             pad = h + topMargin;
         }
+        if (pad == lastToolbarPad) return;   // 防抖：值未变就跳过，打断循环
+        lastToolbarPad = pad;
         View container = findViewById(R.id.webContainer);
         if (container != null) {
             container.setPadding(container.getPaddingLeft(), pad,
