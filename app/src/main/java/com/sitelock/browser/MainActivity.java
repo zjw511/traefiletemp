@@ -14,6 +14,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     private EditText urlInput;
     private View toolbar, toolbarRowB;
-    private com.qmdeve.liquidglass.widget.LiquidGlassView toolbarBlur;
+    private LinearLayout toolbarBlur;
     private Button btnBack, btnForward, btnReload, btnHome, btnHistory, btnScripts, btnGo;
     private TextView homeDomainText, redirectCountText, adCountText, statusText, lockIcon;
     private SwitchCompat toggleRedirects, toggleAds, toggleDesktop;
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         bindViews();
 
-        // 工具栏顶部留出状态栏高度（用 margin 让玻璃片悬浮在状态栏下方，露出顶部玻璃边）
+        // 工具栏顶部留出状态栏高度（用 margin 让工具栏悬浮在状态栏下方）
         ViewCompat.setOnApplyWindowInsetsListener(toolbarBlur, (v, insets) -> {
             int sb = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
             android.widget.LinearLayout.LayoutParams lp =
@@ -81,10 +82,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             return WindowInsetsCompat.CONSUMED;
         });
 
-        // 液态玻璃：仅设置圆角，不绑定采样源（避免 bind() 干扰 WebView 硬件加速渲染）
-        toolbarBlur.post(() -> {
-            toolbarBlur.setCornerRadius(dp(22));
-        });
+        // 不再需要 LiquidGlassView 配置，已改为普通 LinearLayout + 静态背景
 
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);

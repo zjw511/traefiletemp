@@ -8,8 +8,8 @@
     android:background="@color/bg"
     android:fitsSystemWindows="false">
 
-    <!-- 顶部液态玻璃工具栏：悬浮卡片形态，通过代码设置 topMargin 适配状态栏 -->
-    <com.qmdeve.liquidglass.widget.LiquidGlassView
+    <!-- 顶部工具栏：普通 LinearLayout + 毛玻璃背景，避免 LiquidGlassView 测量异常 -->
+    <LinearLayout
         android:id="@+id/toolbarBlur"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,7 +17,8 @@
         android:layout_marginEnd="8dp"
         android:layout_marginTop="0dp"
         android:background="@drawable/glass_card_bg"
-        android:elevation="6dp">
+        android:elevation="6dp"
+        android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/toolbarContent"
@@ -236,7 +237,7 @@
                     android:paddingStart="8dp" />
             </LinearLayout>
         </LinearLayout>
-    </com.qmdeve.liquidglass.widget.LiquidGlassView>
+    </LinearLayout>
 
     <!-- 网页内容区：填充剩余空间，WebView 在其中全屏显示 -->
     <FrameLayout
