@@ -82,19 +82,10 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             return WindowInsetsCompat.CONSUMED;
         });
 
-        // 配置液态玻璃：较大圆角让玻璃边缘更明显，折射+模糊接近 iOS 26 质感
-        // 库内部仅 Android 13+ 渲染效果，低版本透明降级不崩溃
+        // 液态玻璃：仅设置圆角，不绑定采样源（避免 bind() 干扰 WebView 硬件加速渲染）
+        // 背景由 XML 中的半透明白色提供，呈现 iOS 风格毛玻璃卡片质感
         toolbarBlur.post(() -> {
             toolbarBlur.setCornerRadius(dp(22));
-            toolbarBlur.setRefractionHeight(dp(14));
-            toolbarBlur.setRefractionOffset(dp(60));
-            toolbarBlur.setBlurRadius(8f);
-            toolbarBlur.setDispersion(0.4f);
-            // 绑定 WebView 容器作为采样背景源
-            View src = findViewById(R.id.webContainer);
-            if (src instanceof android.view.ViewGroup) {
-                toolbarBlur.bind((android.view.ViewGroup) src);
-            }
         });
 
         // 首次布局完成后获取真实高度并同步一次 padding（一次性，避免循环）
@@ -114,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         // WebView 初始化（使用可监听滚动的子类，用于上滑收拢工具栏）
         webView = new ObservableWebView(this);
+        webView.setBackgroundColor(0xFFFFFFFF);
         android.widget.FrameLayout.LayoutParams webLp =
                 new android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,

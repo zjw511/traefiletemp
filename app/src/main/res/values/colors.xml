@@ -4,6 +4,7 @@
     <color name="bar_bg">#FFFFFF</color>
     <color name="border">#E3E6EA</color>
     <!-- iOS 风玻璃材质 -->
+    <color name="glass_card">#E8F7FBFF</color>
     <color name="glass_bg">#B3FFFFFF</color>
     <color name="glass_bg_dark">#99FFFFFF</color>
     <color name="glass_border">#33FFFFFF</color>
