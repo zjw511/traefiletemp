@@ -74,31 +74,17 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         // 工具栏顶部留出状态栏高度（用 margin 让玻璃片悬浮在状态栏下方，露出顶部玻璃边）
         ViewCompat.setOnApplyWindowInsetsListener(toolbarBlur, (v, insets) -> {
             int sb = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            android.widget.FrameLayout.LayoutParams lp =
-                    (android.widget.FrameLayout.LayoutParams) v.getLayoutParams();
+            android.widget.LinearLayout.LayoutParams lp =
+                    (android.widget.LinearLayout.LayoutParams) v.getLayoutParams();
             lp.topMargin = sb + dp(6);
             v.setLayoutParams(lp);
-            v.post(this::applyToolbarPadding);
             return WindowInsetsCompat.CONSUMED;
         });
 
         // 液态玻璃：仅设置圆角，不绑定采样源（避免 bind() 干扰 WebView 硬件加速渲染）
-        // 背景由 XML 中的半透明白色提供，呈现 iOS 风格毛玻璃卡片质感
         toolbarBlur.post(() -> {
             toolbarBlur.setCornerRadius(dp(22));
         });
-
-        // 首次布局完成后获取真实高度并同步一次 padding（一次性，避免循环）
-        toolbarBlur.getViewTreeObserver().addOnGlobalLayoutListener(
-                new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        if (toolbarBlur.getBottom() > 0) {
-                            applyToolbarPadding();
-                            toolbarBlur.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                        }
-                    }
-                });
 
         historyDb = new HistoryDbHelper(this);
         userScriptManager = new UserScriptManager(this);
@@ -271,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    /** 收拢/展开工具栏：通过动画改变 rowB 高度，并同步 WebView 顶部留白 */
+    /** 收拢/展开工具栏：通过动画改变 rowB 高度，LinearLayout 自动重新布局 */
     private void setToolbarCollapsed(boolean collapsed) {
         if (toolbarCollapsed == collapsed) return;
         toolbarCollapsed = collapsed;
@@ -298,47 +284,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
             lp.topMargin = h == 0 ? 0 : dp(8);
             toolbarRowB.setLayoutParams(lp);
             toolbarRowB.setAlpha(rowBHeight == 0 ? 0f : Math.min(1f, h / (float) rowBHeight));
-            applyToolbarPadding();
         });
         collapseAnimator.start();
-    }
-
-    private int lastToolbarPad = -1;
-
-    /** 让 WebView 顶部留出工具栏实际占位，使页面从玻璃卡片下方开始，
-     *  内部 fixed 元素也不被遮挡。
-     *  改用 WebView topMargin 而非 webContainer padding，
-     *  避免 LiquidGlassView.bind() 采样时与 padding 产生布局冲突。
-     *  防抖：topMargin 值未变化时跳过，避免重复 setLayoutParams 触发重布局 */
-    private void applyToolbarPadding() {
-        if (webView == null || toolbarBlur == null) return;
-        int pad;
-        if (toolbarBlur.getBottom() > 0) {
-            pad = toolbarBlur.getBottom();
-        } else {
-            toolbarBlur.measure(View.MeasureSpec.makeMeasureSpec(
-                            android.content.res.Resources.getSystem().getDisplayMetrics().widthPixels,
-                            View.MeasureSpec.EXACTLY),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-            int h = toolbarBlur.getMeasuredHeight();
-            int topMargin = 0;
-            android.view.ViewGroup.LayoutParams lp = toolbarBlur.getLayoutParams();
-            if (lp instanceof android.widget.FrameLayout.LayoutParams) {
-                topMargin = ((android.widget.FrameLayout.LayoutParams) lp).topMargin;
-            }
-            pad = h + topMargin;
-        }
-        if (pad == lastToolbarPad) return;
-        lastToolbarPad = pad;
-        android.widget.FrameLayout.LayoutParams lp =
-                (android.widget.FrameLayout.LayoutParams) webView.getLayoutParams();
-        if (lp == null) {
-            lp = new android.widget.FrameLayout.LayoutParams(
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
-        }
-        lp.topMargin = pad;
-        webView.setLayoutParams(lp);
     }
 
     /** 桌面版 Chrome User-Agent（Windows） */

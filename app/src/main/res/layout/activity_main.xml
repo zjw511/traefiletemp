@@ -1,30 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 叠加布局：WebView 全屏沉浸在底，RealtimeBlurView 玻璃工具栏悬浮顶部 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 线性垂直布局：工具栏在上，WebView 在下，完全避免叠加渲染冲突 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/bg"
     android:fitsSystemWindows="false">
 
-    <!-- 网页内容区：全屏，WebView 通过 topMargin 代码动态定位到工具栏下方 -->
-    <FrameLayout
-        android:id="@+id/webContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/white" />
-
-    <!-- 顶部液态玻璃工具栏：悬浮卡片形态，四周留边距，四角圆角，玻璃边缘可见。
-         不使用 bind() 动态采样，改用静态半透明白色背景，避免干扰 WebView 渲染 -->
+    <!-- 顶部液态玻璃工具栏：悬浮卡片形态，通过代码设置 topMargin 适配状态栏 -->
     <com.qmdeve.liquidglass.widget.LiquidGlassView
         android:id="@+id/toolbarBlur"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginTop="0dp"
-        android:layout_marginBottom="0dp"
         android:background="@drawable/glass_card_bg"
         android:elevation="6dp">
 
@@ -247,4 +238,12 @@
         </LinearLayout>
     </com.qmdeve.liquidglass.widget.LiquidGlassView>
 
-</FrameLayout>
+    <!-- 网页内容区：填充剩余空间，WebView 在其中全屏显示 -->
+    <FrameLayout
+        android:id="@+id/webContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white" />
+
+</LinearLayout>
