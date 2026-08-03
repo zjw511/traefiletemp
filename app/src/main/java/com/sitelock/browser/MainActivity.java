@@ -136,6 +136,21 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
                 // 更新当前页面标题，供历史记录使用
                 if (title != null) currentTitle = title;
             }
+
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                android.util.Log.i("SITELOCK_DEBUG", "onProgressChanged: " + newProgress + "%");
+                updateDebugOverlay();
+            }
+        });
+
+        // WebView 布局监听：尺寸变化时输出调试信息
+        webView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            android.util.Log.i("SITELOCK_DEBUG", "WebView layout changed: " +
+                    "w=" + (right - left) + " h=" + (bottom - top) +
+                    " vis=" + v.isShown() + " alpha=" + v.getAlpha());
+            updateDebugOverlay();
         });
 
         webViewClient = new CustomWebViewClient(this);
@@ -147,6 +162,30 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         // 起始页
         webView.loadDataWithBaseURL(null, START_PAGE_HTML, "text/html", "utf-8", null);
         setStatus(getString(R.string.status_ready));
+
+        // === DEBUG: 初始化可视化调试覆盖层 ===
+        initDebugOverlay();
+        android.util.Log.i("SITELOCK_DEBUG", "=== onCreate done ===" +
+                " webView=" + (webView != null) +
+                " toolbarBlur=" + (toolbarBlur != null) +
+                " webContainer=" + (findViewById(R.id.webContainer) != null));
+        // 500ms 后输出一次布局状态
+        webView.postDelayed(() -> {
+            View wc = findViewById(R.id.webContainer);
+            android.util.Log.i("SITELOCK_DEBUG", "postDelayed: webContainer=" +
+                    " w=" + wc.getWidth() + " h=" + wc.getHeight() +
+                    " vis=" + wc.isShown());
+            android.util.Log.i("SITELOCK_DEBUG", "postDelayed: webView=" +
+                    " w=" + webView.getWidth() + " h=" + webView.getHeight() +
+                    " vis=" + webView.isShown() +
+                    " url=" + webView.getUrl());
+            android.util.Log.i("SITELOCK_DEBUG", "postDelayed: toolbarBlur=" +
+                    " w=" + toolbarBlur.getWidth() + " h=" + toolbarBlur.getHeight() +
+                    " bottom=" + toolbarBlur.getBottom());
+            android.util.Log.i("SITELOCK_DEBUG", "postDelayed: rootChildCount=" +
+                    ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildCount());
+            updateDebugOverlay();
+        }, 800);
     }
 
     private void bindViews() {
@@ -257,6 +296,64 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 
+    // ===== DEBUG: 可视化调试覆盖层 =====
+    private TextView debugOverlay;
+
+    /** 初始化调试覆盖层：悬浮在屏幕右下角，半透明黑底白字 */
+    private void initDebugOverlay() {
+        debugOverlay = new TextView(this);
+        debugOverlay.setTextSize(10);
+        debugOverlay.setTextColor(0xFFFFFFFF);
+        debugOverlay.setBackgroundColor(0xCC000000);
+        int pad = dp(6);
+        debugOverlay.setPadding(pad, pad, pad, pad);
+        debugOverlay.setMaxWidth(dp(260));
+        debugOverlay.setAlpha(0.85f);
+        // 用系统层级悬浮在所有内容之上
+        android.widget.FrameLayout root = findViewById(android.R.id.content);
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.END;
+        lp.bottomMargin = dp(60);
+        lp.rightMargin = dp(8);
+        root.addView(debugOverlay, lp);
+        debugOverlay.setText("调试初始化中...");
+        android.util.Log.i("SITELOCK_DEBUG", "debugOverlay added to root, childCount=" + root.getChildCount());
+    }
+
+    /** 更新调试覆盖层内容：WebView/webContainer/toolbarBlur 的尺寸、可见性、URL */
+    private void updateDebugOverlay() {
+        if (debugOverlay == null) return;
+        StringBuilder sb = new StringBuilder();
+        View wc = findViewById(R.id.webContainer);
+        sb.append("=== DEBUG ===\n");
+        if (wc != null) {
+            sb.append("webContainer:\n");
+            sb.append("  w=").append(wc.getWidth()).append(" h=").append(wc.getHeight()).append("\n");
+            sb.append("  vis=").append(wc.isShown()).append(" bg=").append(Integer.toHexString(wc.getSolidColor())).append("\n");
+        } else {
+            sb.append("webContainer: NULL\n");
+        }
+        if (webView != null) {
+            sb.append("webView:\n");
+            sb.append("  w=").append(webView.getWidth()).append(" h=").append(webView.getHeight()).append("\n");
+            sb.append("  vis=").append(webView.isShown()).append(" alpha=").append(webView.getAlpha()).append("\n");
+            sb.append("  progress=").append(webView.getProgress()).append("\n");
+            sb.append("  url=").append(webView.getUrl() == null ? "null" : webView.getUrl()).append("\n");
+        } else {
+            sb.append("webView: NULL\n");
+        }
+        if (toolbarBlur != null) {
+            sb.append("toolbar:\n");
+            sb.append("  w=").append(toolbarBlur.getWidth()).append(" h=").append(toolbarBlur.getHeight()).append("\n");
+            sb.append("  bottom=").append(toolbarBlur.getBottom()).append(" vis=").append(toolbarBlur.isShown()).append("\n");
+        }
+        android.view.ViewGroup root = findViewById(android.R.id.content);
+        sb.append("root children=").append(root.getChildCount());
+        debugOverlay.setText(sb.toString());
+    }
+
     /** 收拢/展开工具栏：通过动画改变 rowB 高度，LinearLayout 自动重新布局 */
     private void setToolbarCollapsed(boolean collapsed) {
         if (toolbarCollapsed == collapsed) return;
@@ -331,16 +428,23 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
     @Override
     public void onPageStarted(String url, Bitmap favicon) {
-        runOnUiThread(() -> setStatus(R.string.loading));
+        android.util.Log.i("SITELOCK_DEBUG", "onPageStarted: " + url);
+        runOnUiThread(() -> {
+            setStatus(R.string.loading);
+            updateDebugOverlay();
+        });
     }
 
     @Override
     public void onPageFinished(String url) {
+        android.util.Log.i("SITELOCK_DEBUG", "onPageFinished: " + url +
+                " contentH=" + (webView != null ? webView.getContentHeight() : -1));
         // 记录浏览历史（仅网络页面）
         if (!TextUtils.isEmpty(url) && UrlUtils.isValidUrl(url)) {
             String title = TextUtils.isEmpty(currentTitle) ? url : currentTitle;
             historyDb.record(url, title);
         }
+        runOnUiThread(this::updateDebugOverlay);
     }
 
     @Override
