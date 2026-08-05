@@ -118,8 +118,8 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
         settings.setAllowContentAccess(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
 
-        // 默认开启桌面模式：伪装成电脑浏览器，网站返回无广告的桌面版页面
-        applyDesktopMode(true);
+        // 默认关闭桌面模式：使用移动版 UA，获得更适合手机的页面
+        applyDesktopMode(false);
 
         // 关键：新建窗口（target=_blank）交给当前 WebView 处理，不弹系统浏览器
         webView.setWebChromeClient(new WebChromeClient() {
@@ -142,8 +142,12 @@ public class MainActivity extends AppCompatActivity implements CustomWebViewClie
 
         setupListeners();
 
-        // 起始页
-        webView.loadDataWithBaseURL(null, START_PAGE_HTML, "text/html", "utf-8", null);
+        // 默认主页：mumu888888.com 同时设为「本网站」
+        String homeUrl = "https://mumu888888.com";
+        webViewClient.setHomeDomain("mumu888888.com");
+        homeDomainText.setText("mumu888888.com");
+        urlInput.setText(homeUrl);
+        webView.loadUrl(homeUrl);
         setStatus(getString(R.string.status_ready));
     }
 
